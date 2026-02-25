@@ -1,6 +1,6 @@
 ## Football Data Analysis Project
 
-This project is a woeking progress analysing football data. It focuses on passing, shooting, and upsets in the English Premier League using StatsBomb open data and historical betting odds. It includes Python scripts for clustering, visualization, and statistical analysis. 
+This project is a working progress analysing football data. It focuses on passing, shooting, and upsets in the English Premier League using StatsBomb open data and historical betting odds. It includes Python scripts for clustering, visualization, and statistical analysis. 
 
 ### Project Structure
 - `Data/`: Contains CSV files for EPL seasons and data info.
