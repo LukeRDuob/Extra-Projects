@@ -85,7 +85,7 @@ def upsets_main():
     plt.show()
 
 def kaggle_main():
-    # Example usage of kagglehub to download dataset
+    # Using kagglehub to download dataset
     path = kagglehub.dataset_download("secareanualin/football-events")
     # print("Dataset downloaded to:", path)
 
@@ -99,8 +99,8 @@ def kaggle_main():
 
 
 if __name__ == "__main__":
-    # upsets_main()
-    kaggle_main()
+    upsets_main()
+    # kaggle_main()
     
 
 

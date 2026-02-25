@@ -689,7 +689,7 @@ def main_4():
     single_match_pass_network_v2(match, team_name)
     
     # Full season with formation positions
-    full_season_pass_network_v2(competition_id, season_id, team_name)
+    # full_season_pass_network_v2(competition_id, season_id, team_name)
 
 
 if __name__ == "__main__":

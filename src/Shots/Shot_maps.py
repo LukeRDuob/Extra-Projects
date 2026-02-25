@@ -93,7 +93,6 @@ def get_matches_season(chosen_season=['Premier League','2015/2016']):
     comps = load_competitions()
 
     # Pick a competition and season
-    chosen_season = ['Premier League','2015/2016']
     comp_row = pick_season_competition(comps, preferred_name=chosen_season[0], preferred_season=chosen_season[1])
     competition_id = int(comp_row["competition_id"])
     season_id = int(comp_row["season_id"])
