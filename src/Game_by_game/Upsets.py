@@ -30,12 +30,14 @@ def upset_filtering(df: pd.DataFrame) -> pd.DataFrame:
     Filters the dataframe to only include the columns relevant for upsets (using Bet365 odds) 
     '''
     possible_upsets = df[['FTR', 'B365H', 'B365D', 'B365A']].copy()
+    # Define a threshold for what constitutes an upset (e.g., odds difference of at least 1.5)
+    difference_threshold = 1.5
 
     # Define upsets mask based on Bet365 odds
     upsets_mask = (
-        ((possible_upsets['FTR'] == 'H') & (possible_upsets['B365H'] > possible_upsets[['B365D', 'B365A']].min(axis=1))) |
-        ((possible_upsets['FTR'] == 'D') & (possible_upsets['B365D'] > possible_upsets[['B365H', 'B365A']].min(axis=1))) |
-        ((possible_upsets['FTR'] == 'A') & (possible_upsets['B365A'] > possible_upsets[['B365H', 'B365D']].min(axis=1)))
+        ((possible_upsets['FTR'] == 'H') & (possible_upsets['B365H'] > difference_threshold + possible_upsets[['B365D', 'B365A']].min(axis=1))) |
+        ((possible_upsets['FTR'] == 'D') & (possible_upsets['B365D'] > difference_threshold + possible_upsets[['B365H', 'B365A']].min(axis=1))) |
+        ((possible_upsets['FTR'] == 'A') & (possible_upsets['B365A'] > difference_threshold + possible_upsets[['B365H', 'B365D']].min(axis=1)))
     )
 
     return possible_upsets[upsets_mask], upsets_mask
@@ -64,23 +66,26 @@ def find_shared_columns(seasons: list) -> set:
 
 
 def upsets_main(): 
-    seasons = ['24_25', '23_24', '22_23', '21_22', '20_21'
-               ,'19_20', '18_19']
+    season_start, season_end = 13,25
+    seasons = [f'{y}_{y+1}' for y in range(season_start, season_end)]
     columns_summary = {}
     
     num_upsets = np.zeros(len(seasons))
     for i,season in enumerate(seasons):
+        print('Processing season:', season)
         file_path = f'Data/PL_{season}.csv'
         df = read_filtered_data(file_path)
         df, upset_mask = upset_filtering(df)
         columns_summary[season] = upset_mask.index.tolist()
         num_upsets[i] = upset_mask.sum()
-        print(f"Season {season} has {num_upsets[i]} upsets.")
+        print(f"Season {season.replace('_', '/')} has {num_upsets[i]:.0f} upsets.")
 
     plt.figure()
     plt.bar(seasons, num_upsets, color='skyblue')
     plt.xlabel('Season')
     plt.ylabel('Number of Upsets')
+    # Rotate x-axis labels for better readability
+    plt.xticks(rotation=45)
     plt.title('Number of Upsets per Season in Premier League')
     plt.show()
 
