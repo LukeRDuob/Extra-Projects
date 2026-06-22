@@ -4,12 +4,167 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from Upsets import read_filtered_data
 import plotly.express as px
-
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 
 IMPORTANT_COLS = [
     'Date','HomeTeam','AwayTeam','FTHG','FTAG','FTR','HTHG','HTAG','HTR',
     'Referee','HS','AS','HST','AST','HF','AF','HC','AC','HY','AY','HR','AR'
     ]
+
+def home_win_plot(all_referee_stats: pd.DataFrame):
+    # Plot scatter of total fouls vs home win proportion, colored by number of matches officiated
+    plt.figure(figsize=(10, 6))
+    scatter = plt.scatter(
+        all_referee_stats['Total_Fouls'],
+        all_referee_stats['FTR'], 
+        s=all_referee_stats['Matches_Officiated']*10, 
+        alpha=0.6,
+        )
+    
+    # annotate each point with the referee name
+    # for i, row in all_referee_stats.iterrows():
+        # plt.annotate(row['Referee'], (row['Total_Fouls'], row['FTR']), fontsize=8, alpha=0.7)
+    # avoid overlapping labels by adjusting the position of the annotations
+    for i, row in all_referee_stats.iterrows():
+        offset = np.random.choice([-0.01, 0.01])
+        plt.annotate(row['Referee'], (row['Total_Fouls'], row['FTR']+offset), fontsize=8, alpha=0.7)
+   
+    
+    # Mark even win percentage
+    x_min, x_max = min(all_referee_stats['Total_Fouls']), max(all_referee_stats['Total_Fouls'])
+    plt.axhline(0.5, linestyle='--', color='red',label='Number of Home Wins = Number of Away Wins') 
+
+    plt.xlabel('Average Total Fouls per Match')
+    plt.ylabel('Average Home Win Proportion')
+    plt.title('Referee Fouls vs Home Win Proportion (Size = Matches Officiated)')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('Outputs/Referee_Fouls_vs_Home_Win_Proportion.png')
+    plt.show()
+
+def test_number_clusters(df: pd.DataFrame, max_clusters: int = 10, dimen_red: str = 'pca'):
+    ''' Test different numbers of clusters and plot silhouette scores to find the optimal number of clusters '''
+    # Select referee stats for clustering
+    clustering_data = df[['Total_Fouls', 'Total_Cards', 'FTR', 'Matches_Officiated']].copy()
+
+    # Apply dimensionality reduction
+    if dimen_red == 'none' or dimen_red is None:
+        clustering_data_reduced = None
+    elif dimen_red == 'pca':
+        reducer = PCA(n_components=2, random_state=42)
+        clustering_data_reduced = reducer.fit_transform(clustering_data)
+
+    elif dimen_red == 'tsne':
+        reducer = TSNE(n_components=2, random_state=42)
+        clustering_data_reduced = reducer.fit_transform(clustering_data)
+
+    # Standardize the data
+    scaler = StandardScaler()
+    all_referee_stats = scaler.fit_transform(clustering_data_reduced if clustering_data_reduced is not None else clustering_data)
+
+    
+    silhouette_scores = []
+    for n_clusters in range(2, max_clusters + 1):
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+        cluster_labels = kmeans.fit_predict(all_referee_stats)
+        silhouette_avg = silhouette_score(all_referee_stats, cluster_labels)
+        silhouette_scores.append(silhouette_avg)
+        print(f'Silhouette Score for {n_clusters} clusters: {silhouette_avg:.4f}')
+
+    # Plot silhouette scores
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(2, max_clusters + 1), silhouette_scores, marker='o')
+    plt.xticks(range(2, max_clusters + 1))
+    plt.xlabel('Number of Clusters')
+    plt.ylabel('Silhouette Score')
+    plt.title('Silhouette Scores for Different Numbers of Clusters')
+    plt.tight_layout()
+    plt.savefig('Outputs/Silhouette_Scores_Clusters.png')
+    plt.show()
+
+def cluster_referees(df: pd.DataFrame, n_clusters: int = 3, dimen_red: str = 'pca') -> pd.DataFrame:
+    ''' Plotting script to cluster referees based on their fouls and cards statistics using KMeans clustering '''
+
+    # Select referee stats for clustering
+    clustering_data = df[['Total_Fouls', 'Total_Cards', 'FTR', 'Matches_Officiated']].copy()
+
+    # Apply dimensionality reduction
+    if dimen_red == 'none' or dimen_red is None:
+        clustering_data_reduced = None
+    elif dimen_red == 'pca':
+        reducer = PCA(n_components=2, random_state=42)
+        clustering_data_reduced = reducer.fit_transform(clustering_data)
+
+    elif dimen_red == 'tsne':
+        reducer = TSNE(n_components=2, random_state=42)
+        clustering_data_reduced = reducer.fit_transform(clustering_data)
+
+    # Standardize the data
+    scaler = StandardScaler()
+    clustering_data_scaled = scaler.fit_transform(clustering_data_reduced if clustering_data_reduced is not None else clustering_data)
+
+    # Apply KMeans clustering
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    df['Cluster'] = kmeans.fit_predict(clustering_data_scaled)
+    
+    # Calculate silhouette score to evaluate clustering quality
+    silhouette_avg = silhouette_score(clustering_data_scaled, df['Cluster'])
+    print(f'Silhouette Score for {n_clusters} clusters: {silhouette_avg:.4f}')
+
+    # Plot the clusters
+    if clustering_data_reduced is None:
+
+        plt.figure(figsize=(10, 6))
+        scatter = plt.scatter(
+            df['Total_Fouls'],
+            df['FTR'],
+            c=df['Cluster'],
+            s=df['Matches_Officiated']*10,
+            cmap='viridis',
+            alpha=0.6
+        )
+        # Add labels for each referee name
+        for i, row in df.iterrows():
+            plt.annotate(row['Referee'], (row['Total_Fouls'], row['FTR']), fontsize=8, alpha=0.7)
+        plt.xlabel('Average Total Fouls per Match')
+        plt.ylabel('Average Home Win Proportion')
+        plt.title(f'Referee Clustering based on Fouls and Home Win Proportion (n_clusters={n_clusters})')   
+        plt.tight_layout()
+        plt.savefig(f'Outputs/Referee_Clustering_n_clusters_{n_clusters}.png')
+        plt.show()
+
+
+    # plot the clusters in 2D space after dimensionality reduction
+    else:
+        plt.figure(figsize=(10, 6))
+        scatter = plt.scatter(
+            clustering_data_reduced[:, 0],
+            clustering_data_reduced[:, 1],
+            c=df['Cluster'],
+            s=df['Matches_Officiated']*10,
+            cmap='viridis',
+            # label names of referees
+            alpha=0.6
+        )
+        # match the points with the original df to get the referee names for annotation
+        df_reduced = pd.DataFrame(clustering_data_reduced, columns=['Component_1', 'Component_2'])
+        df_reduced['Referee'] = df['Referee'].values
+        for i, row in df_reduced.iterrows():
+            plt.annotate(row['Referee'], (row['Component_1'], row['Component_2']), fontsize=8, alpha=0.7)
+        plt.xlabel('Component 1')
+        plt.ylabel('Component 2')
+        plt.title(f'Referee Clustering in Reduced Dimensionality Space (n_clusters={n_clusters}, method={dimen_red})')   
+        plt.tight_layout()
+        plt.savefig(f'Outputs/Referee_Clustering_Reduced_{dimen_red}_n_clusters_{n_clusters}.png')
+        plt.show()
+
+
+
+
 
 
 def referee_analysis(df: pd.DataFrame) -> pd.DataFrame:
@@ -44,7 +199,7 @@ def referee_analysis(df: pd.DataFrame) -> pd.DataFrame:
     return sorted_referees[['Referee','Total_Fouls','Total_Cards','Matches_Officiated', 'FTR']]
 
 def main():
-    season_start, season_end = 20,25
+    season_start, season_end = 17,25
     seasons = [f'{y}_{y+1}' for y in range(season_start, season_end)]
 
     # Initialise a df for storing referee stats across seasons
@@ -91,30 +246,10 @@ def main():
     # plt.tight_layout()
     # # plt.savefig('Outputs/Top_Referees_Fouls.png')
     # plt.show()
+    cluster_referees(all_referee_stats, n_clusters=3, dimen_red='pca')
 
-    # Plot scatter of total fouls vs home win proportion, colored by number of matches officiated
-    plt.figure(figsize=(10, 6))
-    scatter = plt.scatter(
-        all_referee_stats['Total_Fouls'],
-        all_referee_stats['FTR'], 
-        s=all_referee_stats['Matches_Officiated']*10, 
-        alpha=0.6,
-        )
-    
-    # annotate each point with the referee name
-    # for i, row in all_referee_stats.iterrows():
-        # plt.annotate(row['Referee'], (row['Total_Fouls'], row['FTR']), fontsize=8, alpha=0.7)
-    # avoid overlapping labels by adjusting the position of the annotations
-    for i, row in all_referee_stats.iterrows():
-        offset = np.random.choice([-0.01, 0.01])
-        plt.annotate(row['Referee'], (row['Total_Fouls'], row['FTR']+offset), fontsize=8, alpha=0.7)
-   
-    plt.xlabel('Average Total Fouls per Match')
-    plt.ylabel('Average Home Win Proportion')
-    plt.title('Referee Fouls vs Home Win Proportion (Size = Matches Officiated)')
-    plt.tight_layout()
-    plt.savefig('Outputs/Referee_Fouls_vs_Home_Win_Proportion.png')
-    plt.show()
+
+    # test_number_clusters(all_referee_stats, max_clusters=10, dimen_red='none')
 
     # Use seaborn to create an interactive scatter plot of total fouls vs home win proportion, colored by number of matches officiated with labels for each name
     # plt.figure(figsize=(10, 6))
