@@ -519,7 +519,6 @@ def extract_team_features(passes: pd.DataFrame, player_pos: pd.DataFrame) -> dic
     Extract a feature vector representing a team's passing style.
     Returns a dict of metrics that can be used for clustering.
     """
- 
     
     # Build network
     G = nx.DiGraph()

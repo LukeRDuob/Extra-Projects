@@ -15,7 +15,6 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score
 from sklearn.cluster import AgglomerativeClustering
-import umap
 
 
 def outside_box_shots(shots_df):
