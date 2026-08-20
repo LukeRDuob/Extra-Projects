@@ -1,3 +1,5 @@
 /Passing_maps1.py
 src/General_visualisations/event_data/
 /__pycache__
+src/General_visualisations/__pycache__/
+src/General_visualisations/Data_processing/__pycache__/
