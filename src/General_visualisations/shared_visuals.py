@@ -9,13 +9,12 @@ import os
 
 
 
-def get_player_nickname(main_events_df, teamname, player_name=None):
-    teamname = "Spain"
+def get_player_nickname(main_events_df, teamname, player_name=None, redo=False):
     events_df = main_events_df[main_events_df["team_name"] == teamname].copy()
     # Check if the CSV exists, and create it if not
     output_dir = rf"Data_processing\name_mappings\{teamname.lower()}_mapping.csv"
 
-    if not os.path.exists(output_dir):
+    if not os.path.exists(output_dir) or redo:
         # Match players using wikidata and fuzzy matching, saving as a CSV file
         print(f"Creating new mapping for {teamname} and saving to {output_dir}")
         matched = preferred_names.create_player_name_mapping(

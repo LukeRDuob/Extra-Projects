@@ -150,11 +150,10 @@ def get_player_positions(events: pd.DataFrame, team_name: str, season_level: boo
                     if pos_name not in positions[player_name]:
                         positions[player_name][pos_name] = 0
                     positions[player_name][pos_name] += 1
-            most_common = {}
-            for player_name, counts in positions.items():
-                most_common[player_name] = max(counts, key=counts.get)
-
-            return most_common
+        return {
+            player_name: max(counts, key=counts.get)
+            for player_name, counts in positions.items()
+        }
         # position_counts = defaultdict(Counter)
         # for _, match_events in events.groupby("match_id", dropna=False):
         #     xi_rows = match_events[(match_events[type_col] == "Starting XI") & (match_events[team_col] == team_name)]

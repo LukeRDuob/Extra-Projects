@@ -62,20 +62,30 @@ def get_players_by_names(player_names: List[str], country_name: Optional[str] = 
     seen_ids = set()
 
     for player_name in player_names:
-        data = _make_api_request({
-            "action": "wbsearchentities",
-            "search": player_name,
-            "language": "en",
-            "uselang": "en",
-            "type": "item",
-            "limit": 10,
-        })
-        results = (data or {}).get("search", [])
+        name_parts = player_name.split()
+        short_name = " ".join((name_parts[0], name_parts[-1])) if len(name_parts) > 2 else player_name
+        search_terms = list(dict.fromkeys([
+            player_name,
+            short_name,
+            f"{player_name} footballer",
+            f"{short_name} footballer",
+        ]))
+        results = []
+        for search_term in search_terms:
+            data = _make_api_request({
+                "action": "wbsearchentities",
+                "search": search_term,
+                "language": "en",
+                "uselang": "en",
+                "type": "item",
+                "limit": 10,
+            })
+            results.extend((data or {}).get("search", []))
 
         candidates = []
         for result in results:
             description = result.get("description", "").lower()
-            if "football" not in description:
+            if not any(term in description for term in ("football", "soccer")):
                 continue
             names = [result.get("label", "")] + result.get("aliases", [])
             score = max(
